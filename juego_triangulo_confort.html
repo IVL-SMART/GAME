@@ -1,0 +1,1085 @@
+<script type="text/javascript">
+        var gk_isXlsx = false;
+        var gk_xlsxFileLookup = {};
+        var gk_fileData = {};
+        function filledCell(cell) {
+          return cell !== '' && cell != null;
+        }
+        function loadFileData(filename) {
+        if (gk_isXlsx && gk_xlsxFileLookup[filename]) {
+            try {
+                var workbook = XLSX.read(gk_fileData[filename], { type: 'base64' });
+                var firstSheetName = workbook.SheetNames[0];
+                var worksheet = workbook.Sheets[firstSheetName];
+
+                // Convert sheet to JSON to filter blank rows
+                var jsonData = XLSX.utils.sheet_to_json(worksheet, { header: 1, blankrows: false, defval: '' });
+                // Filter out blank rows (rows where all cells are empty, null, or undefined)
+                var filteredData = jsonData.filter(row => row.some(filledCell));
+
+                // Heuristic to find the header row by ignoring rows with fewer filled cells than the next row
+                var headerRowIndex = filteredData.findIndex((row, index) =>
+                  row.filter(filledCell).length >= filteredData[index + 1]?.filter(filledCell).length
+                );
+                // Fallback
+                if (headerRowIndex === -1 || headerRowIndex > 25) {
+                  headerRowIndex = 0;
+                }
+
+                // Convert filtered JSON back to CSV
+                var csv = XLSX.utils.aoa_to_sheet(filteredData.slice(headerRowIndex)); // Create a new sheet from filtered array of arrays
+                csv = XLSX.utils.sheet_to_csv(csv, { header: 1 });
+                return csv;
+            } catch (e) {
+                console.error(e);
+                return "";
+            }
+        }
+        return gk_fileData[filename] || "";
+        }
+        </script><!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Triángulo del Confort Espiritual</title>
+    <link href="https://fonts.googleapis.com/css2?family=Press+Start+2P&display=swap" rel="stylesheet">
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
+    <style>
+        body {
+            background-color: #0a0a0a;
+            color: #fff;
+            font-family: 'Press Start 2P', cursive;
+            text-align: center;
+            margin: 0;
+            padding: 10px;
+            position: relative;
+            overflow: hidden;
+        }
+        #background-layer {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            z-index: -1;
+            background-image: url('https://images.unsplash.com/photo-1464802686167-b939a6910659');
+            background-size: cover;
+            background-position: center;
+            background-attachment: fixed;
+            transition: background-position 0.2s ease;
+            transform: scale(1.1);
+        }
+        #title {
+            font-size: 1.2em;
+            margin: 15px 0;
+            text-shadow: 2px 2px #ff0000, -2px -2px #ffcc00;
+        }
+        #start-screen, #game-container, #end-screen {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+        }
+        #start-screen {
+            display: block;
+        }
+        #game-container, #end-screen {
+            display: none;
+        }
+        #name-input {
+            font-size: 0.7em;
+            padding: 10px;
+            margin: 15px;
+            width: 280px;
+            font-family: 'Press Start 2P', cursive;
+            background-color: rgba(0, 0, 0, 0.7);
+            color: #fff;
+            border: 2px solid #ffcc00;
+            text-align: center;
+            box-sizing: border-box;
+        }
+        #start-button, #restart-button, #share-button {
+            background-color: #ffcc00;
+            border: 2px solid #000;
+            padding: 8px 15px;
+            font-size: 0.8em;
+            cursor: pointer;
+            font-family: 'Press Start 2P', cursive;
+            color: #000;
+            margin: 5px;
+        }
+        #start-button:hover, #restart-button:hover, #share-button:hover {
+            background-color: #ffa500;
+        }
+        #question-area {
+            font-size: 0.8em;
+            margin: 15px;
+            max-width: 90%;
+            line-height: 1.4;
+            animation: slideIn 0.5s ease-out;
+            background-color: rgba(0, 0, 0, 0.7);
+            padding: 8px;
+            color: #ffffff;
+            text-shadow: 1px 1px 2px #000;
+        }
+        @keyframes slideIn {
+            from { transform: translateX(100%); opacity: 0; }
+            to { transform: translateX(0); opacity: 1; }
+        }
+        #answer-buttons {
+            display: flex;
+            flex-wrap: wrap;
+            justify-content: center;
+            gap: 8px;
+            margin: 15px;
+            max-width: 90%;
+            background-color: rgba(0, 0, 0, 0.7);
+            padding: 8px;
+        }
+        .answer-button {
+            background-color: #ffcc00;
+            border: 2px solid #000;
+            padding: 6px 12px;
+            font-size: 0.7em;
+            cursor: pointer;
+            font-family: 'Press Start 2P', cursive;
+            color: #ffffff;
+            text-shadow: 1px 1px 2px #000;
+        }
+        .answer-button:hover {
+            background-color: #ffa500;
+        }
+        .answer-button.blink {
+            animation: blink 0.3s;
+        }
+        @keyframes blink {
+            0%, 100% { background-color: #ffcc00; }
+            50% { background-color: #ffffff; }
+        }
+        #canvas, #end-canvas, #score-canvas {
+            border: 2px solid #fff;
+            margin-top: 15px;
+            background-color: rgba(0, 0, 0, 0.3);
+            width: 100%;
+        }
+        #canvas {
+            max-width: 500px;
+            max-height: 375px;
+        }
+        #end-canvas {
+            max-width: 600px;
+            max-height: 450px;
+        }
+        #score-canvas {
+            max-width: 600px;
+            max-height: 200px;
+        }
+        #feedback, #end-message {
+            font-size: 1em;
+            margin-top: 10px;
+            max-width: 90%;
+            line-height: 1.4;
+        }
+        #feedback.positive {
+            color: #00ff00;
+        }
+        #feedback.negative {
+            animation: scoreBlink 0.5s infinite;
+        }
+        @keyframes scoreBlink {
+            0%, 100% { color: #ff0000; }
+            50% { color: #ffffff; }
+        }
+        #end-message {
+            color: #ffffff;
+            font-size: 0.8em;
+            background-color: rgba(0, 0, 0, 0.7);
+            padding: 8px;
+        }
+        #timer {
+            font-size: 1em;
+            margin-top: 10px;
+            color: #ff0000;
+        }
+        #score-tooltip, #end-tooltip {
+            position: absolute;
+            background-color: rgba(0, 0, 0, 0.7);
+            color: #ffffff;
+            font-size: 0.6em;
+            padding: 5px;
+            border-radius: 3px;
+            pointer-events: none;
+            display: none;
+            max-width: 200px;
+            white-space: normal;
+            line-height: 1.2;
+        }
+        @media (max-width: 600px) {
+            #title {
+                font-size: 1em;
+            }
+            #question-area, #end-message {
+                font-size: 0.7em;
+            }
+            #feedback, #timer {
+                font-size: 0.9em;
+            }
+            .answer-button, #start-button, #restart-button, #share-button {
+                padding: 5px 10px;
+                font-size: 0.6em;
+            }
+            #name-input {
+                font-size: 0.6em;
+                width: 220px;
+            }
+            #canvas {
+                max-width: 350px;
+                max-height: 262.5px;
+            }
+            #end-canvas {
+                max-width: 400px;
+                max-height: 300px;
+            }
+            #score-canvas {
+                max-width: 400px;
+                max-height: 150px;
+            }
+            #score-tooltip, #end-tooltip {
+                font-size: 0.45em;
+                max-width: 150px;
+            }
+            #game-container {
+                flex-direction: column;
+            }
+            #canvas {
+                order: -1;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div id="background-layer"></div>
+    <canvas id="shooting-stars" style="position: fixed; top: 0; left: 0; width: 100%; height: 100%; z-index: -1; pointer-events: none;"></canvas>
+    <div id="title">TRIÁNGULO DEL CONFORT ESPIRITUAL</div>
+    <div id="start-screen">
+        <input type="text" id="name-input" placeholder="Tu nombre o nickname" maxlength="20">
+        <button id="start-button">Iniciar Juego</button>
+    </div>
+    <div id="game-container">
+        <canvas id="canvas" width="500" height="375"></canvas>
+        <div id="question-area">Presiona una opción para comenzar</div>
+        <div id="timer">Tiempo: 10s</div>
+        <div id="answer-buttons"></div>
+        <div id="feedback"></div>
+    </div>
+    <div id="end-screen">
+        <canvas id="end-canvas" width="600" height="450"></canvas>
+        <canvas id="score-canvas" width="600" height="200"></canvas>
+        <div id="score-tooltip"></div>
+        <div id="end-tooltip"></div>
+        <div id="end-message"></div>
+        <button id="restart-button">Reiniciar Juego</button>
+        <button id="share-button">Compartir Resultados</button>
+    </div>
+    <script>
+        const questions = [
+            { 
+                question: "¿Cuántas veces a la semana lees la Biblia?", 
+                correct: ["Más de 7 veces", "7"], 
+                options: ["Más de 7 veces", "7", "6", "5", "4", "3", "2", "1", "0 veces"]
+            },
+            { 
+                question: "¿Cuántas veces a la semana oras?", 
+                correct: ["De continuo", "Más de 7 veces", "7"], 
+                options: ["De continuo", "Más de 7 veces", "7", "6", "5", "4", "3", "2", "1", "0 veces"]
+            },
+            { question: "¿Asistes a la iglesia semanalmente?", correct: "Sí", options: ["Sí", "No"] },
+            { question: "¿Romanos 12:2 nos insta a conformarnos a este mundo?", correct: "No", options: ["Sí", "No"] },
+            { question: "¿Proverbios 14:12 dice que todos los caminos llevan a la vida?", correct: "No", options: ["Sí", "No"] },
+            { question: "¿Jeremías 21:8 habla de elegir entre el camino de la vida y el de la muerte?", correct: "Sí", options: ["Sí", "No"] },
+            { question: "¿Santiago 4:17 dice que es pecado saber hacer lo bueno y no hacerlo?", correct: "Sí", options: ["Sí", "No"] },
+            { question: "¿La parábola del hijo pródigo enseña que el pecado no tiene consecuencias?", correct: "No", options: ["Sí", "No"] }
+        ];
+
+        let currentQuestionIndex = 0;
+        let position = { x: 250, y: 187.5 };
+        let score = 0;
+        let scoreHistory = [0];
+        let playerName = '';
+        let timeLeft = 10;
+        let timerId = null;
+        let pulseSize = 10;
+        let radarPulse = 0;
+        let audioContextUnlocked = false;
+        let driftDirection = { x: 0, y: 0 };
+        let frozenPoints = [];
+        let answersGiven = [];
+        const canvas = document.getElementById('canvas');
+        const ctx = canvas.getContext('2d');
+        const endCanvas = document.getElementById('end-canvas');
+        const endCtx = endCanvas.getContext('2d');
+        const scoreCanvas = document.getElementById('score-canvas');
+        const scoreCtx = scoreCanvas.getContext('2d');
+        const feedbackElement = document.getElementById('feedback');
+        const timerElement = document.getElementById('timer');
+        const startScreen = document.getElementById('start-screen');
+        const gameContainer = document.getElementById('game-container');
+        const endScreen = document.getElementById('end-screen');
+        const nameInput = document.getElementById('name-input');
+        const answerButtons = document.getElementById('answer-buttons');
+        const endMessage = document.getElementById('end-message');
+        const scoreTooltip = document.getElementById('score-tooltip');
+        const endTooltip = document.getElementById('end-tooltip');
+
+        // Verificar carga del fondo con respaldo
+        const bgImage = new Image();
+        const primaryUrl = 'https://images.unsplash.com/photo-1464802686167-b939a6910659';
+        const fallbackUrl = 'https://images.unsplash.com/photo-1451187580459-43490279c0fa';
+        bgImage.src = primaryUrl;
+        bgImage.onload = () => {
+            console.log('Fondo cargado');
+            document.getElementById('background-layer').style.backgroundImage = `url('${bgImage.src}')`;
+        };
+        bgImage.onerror = () => {
+            console.error('Error cargando fondo principal');
+            console.log('Intentando fondo de respaldo');
+            bgImage.src = fallbackUrl;
+            bgImage.onload = () => {
+                console.log('Fondo de respaldo cargado');
+                document.getElementById('background-layer').style.backgroundImage = `url('${bgImage.src}')`;
+            };
+            bgImage.onerror = () => {
+                console.error('Error cargando fondo de respaldo');
+                document.getElementById('background-layer').style.backgroundColor = '#0a0a0a';
+            };
+        };
+
+        // Efecto parallax para móviles
+        function requestMotionPermission() {
+            if (typeof DeviceMotionEvent.requestPermission === 'function') {
+                DeviceMotionEvent.requestPermission()
+                    .then(permissionState => {
+                        if (permissionState === 'granted') {
+                            console.log('Permiso de acelerómetro concedido');
+                            window.addEventListener('devicemotion', (event) => {
+                                const accX = event.accelerationIncludingGravity.x || 0;
+                                const accY = event.accelerationIncludingGravity.y || 0;
+                                console.log(`Acelerómetro: x=${accX.toFixed(2)}, y=${accY.toFixed(2)}`);
+                                const moveX = accX * 8;
+                                const moveY = accY * 8;
+                                document.getElementById('background-layer').style.backgroundPosition = `${50 - moveX}% ${50 - moveY}%`;
+                            });
+                        } else {
+                            console.log('Permiso de acelerómetro denegado');
+                        }
+                    })
+                    .catch(err => console.error('Error solicitando permiso de acelerómetro:', err));
+            } else {
+                window.addEventListener('devicemotion', (event) => {
+                    const accX = event.accelerationIncludingGravity.x || 0;
+                    const accY = event.accelerationIncludingGravity.y || 0;
+                    console.log(`Acelerómetro: x=${accX.toFixed(2)}, y=${accY.toFixed(2)}`);
+                    const moveX = accX * 8;
+                    const moveY = accY * 8;
+                    document.getElementById('background-layer').style.backgroundPosition = `${50 - moveX}% ${50 - moveY}%`;
+                });
+            }
+        }
+
+        // Efecto parallax para escritorio (mousemove)
+        window.addEventListener('mousemove', (event) => {
+            const winWidth = window.innerWidth;
+            const winHeight = window.innerHeight;
+            const mouseX = event.clientX;
+            const mouseY = event.clientY;
+            const moveX = ((mouseX / winWidth) - 0.5) * 200;
+            const moveY = ((mouseY / winHeight) - 0.5) * 200;
+            console.log(`Parallax escritorio: x=${moveX.toFixed(2)}, y=${moveY.toFixed(2)}`);
+            document.getElementById('background-layer').style.backgroundPosition = `${50 + moveX}% ${50 + moveY}%`;
+        });
+
+        // Sistema de música de fondo
+        const audioContext = new (window.AudioContext || window.webkitAudioContext)();
+        const backgroundMusic = new Audio('https://www.soundhelix.com/examples/mp3/SoundHelix-Song-1.mp3');
+        backgroundMusic.loop = true;
+        backgroundMusic.volume = 0.3;
+        backgroundMusic.onerror = () => {
+            console.error('Error cargando música de fondo');
+        };
+
+        function unlockAudioContext() {
+            if (audioContext.state === 'suspended') {
+                audioContext.resume().then(() => {
+                    console.log('AudioContext desbloqueado');
+                    audioContextUnlocked = true;
+                    try {
+                        backgroundMusic.play().then(() => {
+                            console.log('Música iniciada');
+                        }).catch(e => console.error('Error reproduciendo música:', e));
+                    } catch (e) {
+                        console.error('Error intentando reproducir música:', e);
+                    }
+                }).catch(e => console.error('Error desbloqueando AudioContext:', e));
+            }
+        }
+
+        document.addEventListener('DOMContentLoaded', () => {
+            const events = ['click', 'touchstart', 'keydown'];
+            events.forEach(eventType => {
+                document.addEventListener(eventType, () => {
+                    console.log(`Evento de desbloqueo: ${eventType}`);
+                    unlockAudioContext();
+                }, { once: true });
+            });
+            setTimeout(() => {
+                console.log('Intento inicial de desbloqueo de audio');
+                unlockAudioContext();
+            }, 300);
+        });
+
+        // Sonidos para respuestas correctas e incorrectas
+        function playCorrectSound() {
+            if (!audioContextUnlocked) return;
+            try {
+                const oscillator1 = audioContext.createOscillator();
+                const oscillator2 = audioContext.createOscillator();
+                const gainNode = audioContext.createGain();
+                oscillator1.connect(gainNode);
+                oscillator2.connect(gainNode);
+                gainNode.connect(audioContext.destination);
+                oscillator1.frequency.setValueAtTime(523, audioContext.currentTime);
+                oscillator1.frequency.setValueAtTime(659, audioContext.currentTime + 0.1);
+                oscillator1.frequency.setValueAtTime(784, audioContext.currentTime + 0.2);
+                oscillator2.frequency.setValueAtTime(262, audioContext.currentTime);
+                oscillator2.frequency.setValueAtTime(330, audioContext.currentTime + 0.1);
+                oscillator2.frequency.setValueAtTime(392, audioContext.currentTime + 0.2);
+                gainNode.gain.setValueAtTime(0.8, audioContext.currentTime);
+                gainNode.gain.exponentialRampToValueAtTime(0.01, audioContext.currentTime + 0.4);
+                oscillator1.start(audioContext.currentTime);
+                oscillator1.stop(audioContext.currentTime + 0.4);
+                oscillator2.start(audioContext.currentTime);
+                oscillator2.stop(audioContext.currentTime + 0.4);
+                console.log('Sonido de respuesta correcta reproducido');
+            } catch (e) {
+                console.error('Error reproduciendo sonido correcto:', e);
+            }
+        }
+
+        function playIncorrectSound() {
+            if (!audioContextUnlocked) return;
+            try {
+                const oscillator1 = audioContext.createOscillator();
+                const oscillator2 = audioContext.createOscillator();
+                const gainNode = audioContext.createGain();
+                oscillator1.connect(gainNode);
+                oscillator2.connect(gainNode);
+                gainNode.connect(audioContext.destination);
+                oscillator1.frequency.setValueAtTime(300, audioContext.currentTime);
+                oscillator1.frequency.setValueAtTime(250, audioContext.currentTime + 0.15);
+                oscillator1.frequency.setValueAtTime(200, audioContext.currentTime + 0.3);
+                oscillator2.frequency.setValueAtTime(310, audioContext.currentTime);
+                oscillator2.frequency.setValueAtTime(260, audioContext.currentTime + 0.15);
+                oscillator2.frequency.setValueAtTime(210, audioContext.currentTime + 0.3);
+                gainNode.gain.setValueAtTime(0.8, audioContext.currentTime);
+                gainNode.gain.exponentialRampToValueAtTime(0.01, audioContext.currentTime + 0.5);
+                oscillator1.start(audioContext.currentTime);
+                oscillator1.stop(audioContext.currentTime + 0.5);
+                oscillator2.start(audioContext.currentTime);
+                oscillator2.stop(audioContext.currentTime + 0.5);
+                console.log('Sonido de respuesta incorrecta reproducido');
+            } catch (e) {
+                console.error('Error reproduciendo sonido incorrecto:', e);
+            }
+        }
+
+        // Generar dirección aleatoria para deriva centrífuga
+        function setRandomDriftDirection() {
+            const angle = Math.random() * 2 * Math.PI;
+            driftDirection = { x: Math.cos(angle), y: Math.sin(angle) };
+            console.log(`Dirección de deriva: x=${driftDirection.x.toFixed(2)}, y=${driftDirection.y.toFixed(2)}`);
+        }
+
+        function drawGrid(ctx, width, height) {
+            ctx.beginPath();
+            ctx.strokeStyle = '#ffffff33';
+            ctx.lineWidth = 1;
+            for (let x = 0; x <= width; x += 50) {
+                ctx.moveTo(x, 0);
+                ctx.lineTo(x, height);
+            }
+            for (let y = 0; y <= height; y += 50) {
+                ctx.moveTo(0, y);
+                ctx.lineTo(width, y);
+            }
+            ctx.stroke();
+        }
+
+        function drawTrapezoid(ctx, width, height, lowTime) {
+            ctx.clearRect(0, 0, width, height);
+            drawGrid(ctx, width, height);
+            ctx.beginPath();
+            ctx.lineWidth = lowTime ? 6 : 4;
+            ctx.lineJoin = 'round';
+            ctx.lineCap = 'round';
+            const scaleX = width / 500;
+            const scaleY = height / 375;
+            ctx.moveTo(187.5 * scaleX, 62.5 * scaleY);
+            ctx.lineTo(250 * scaleX, 37.5 * scaleY);
+            ctx.lineTo(437.5 * scaleX, 312.5 * scaleY);
+            ctx.lineTo(62.5 * scaleX, 312.5 * scaleY);
+            ctx.closePath();
+            ctx.strokeStyle = lowTime ? (Date.now() % (500 - (5 - timeLeft) * 100) < (250 - (5 - timeLeft) * 50) ? '#ffcc00' : '#ffffff') : '#fff';
+            ctx.stroke();
+        }
+
+        function drawPlayer() {
+            radarPulse = (radarPulse + 16) % 800;
+            const radarRadius = (radarPulse / 800) * 30;
+            const radarOpacity = 0.3 * (1 - radarPulse / 800);
+            ctx.beginPath();
+            ctx.arc(position.x, position.y, radarRadius, 0, 2 * Math.PI);
+            ctx.fillStyle = `rgba(255, 255, 255, ${radarOpacity})`;
+            ctx.fill();
+            ctx.beginPath();
+            ctx.arc(position.x, position.y, pulseSize, 0, 2 * Math.PI);
+            ctx.fillStyle = '#ff0000';
+            ctx.fill();
+        }
+
+        function drawFrozenPoints(ctx, width, height) {
+            const scaleX = width / 500;
+            const scaleY = height / 375;
+            frozenPoints.forEach((point, index) => {
+                ctx.beginPath();
+                ctx.arc(point.x * scaleX, point.y * scaleY, 6, 0, 2 * Math.PI);
+                ctx.fillStyle = '#ff0000';
+                ctx.fill();
+                console.log(`Punto dibujado ${index}: x=${(point.x * scaleX).toFixed(2)}, y=${(point.y * scaleY).toFixed(2)}`);
+            });
+        }
+
+        function updateCanvas() {
+            if (currentQuestionIndex < questions.length) {
+                position.x += driftDirection.x * 0.144;
+                position.y += driftDirection.y * 0.144;
+                position.x = Math.max(0, Math.min(canvas.width, position.x));
+                position.y = Math.max(0, Math.min(canvas.height, position.y));
+                const lowTime = timeLeft <= 5;
+                console.log(`Tiempo bajo: ${lowTime}, Duración de parpadeo: ${lowTime ? (500 - (5 - timeLeft) * 100) : 'N/A'}ms`);
+                ctx.clearRect(0, 0, canvas.width, canvas.height);
+                drawTrapezoid(ctx, canvas.width, canvas.height, lowTime);
+                drawPlayer();
+                drawFrozenPoints(ctx, canvas.width, canvas.height);
+                feedbackElement.textContent = `Puntuación: ${score}`;
+                feedbackElement.className = score >= 0 ? 'positive' : 'negative';
+                pulseSize = 10 + 2 * Math.sin(Date.now() / 400);
+                console.log(`Posición del punto: x=${position.x.toFixed(2)}, y=${position.y.toFixed(2)}`);
+            }
+        }
+
+        function showQuestion() {
+            if (currentQuestionIndex >= questions.length) {
+                showEndScreen();
+                return;
+            }
+            position = { x: 250, y: 187.5 };
+            setRandomDriftDirection();
+            const question = questions[currentQuestionIndex];
+            document.getElementById('question-area').textContent = 
+                playerName ? `${playerName}, ${question.question}` : question.question;
+            answerButtons.innerHTML = '';
+            question.options.forEach(option => {
+                const button = document.createElement('button');
+                button.className = 'answer-button';
+                button.textContent = option;
+                button.addEventListener('click', () => {
+                    console.log(`Botón clicado: ${option}`);
+                    handleAnswer(option);
+                }, { once: true });
+                answerButtons.appendChild(button);
+            });
+            console.log(`Botones creados: ${question.options.join(', ')}`);
+            timeLeft = 10;
+            timerElement.textContent = `Tiempo: ${timeLeft}s`;
+            if (timerId) clearInterval(timerId);
+            timerId = setInterval(() => {
+                timeLeft -= 1;
+                timerElement.textContent = `Tiempo: ${timeLeft}s`;
+                if (timeLeft <= 0) {
+                    clearInterval(timerId);
+                    handleAnswer(null);
+                }
+            }, 1000);
+        }
+
+        function handleAnswer(answer) {
+            clearInterval(timerId);
+            console.log(`Respuesta: ${answer}, Correcta: ${JSON.stringify(questions[currentQuestionIndex].correct)}, Posición antes: x=${position.x.toFixed(2)}, y=${position.y.toFixed(2)}`);
+            const question = questions[currentQuestionIndex];
+            const isCorrect = Array.isArray(question.correct) ? question.correct.includes(answer) : answer === question.correct;
+            const isFrequencyQuestion = currentQuestionIndex === 0 || currentQuestionIndex === 1;
+            answersGiven.push(answer);
+
+            if (isFrequencyQuestion) {
+                const frequencyDistances = {
+                    "De continuo": 20,
+                    "Más de 7 veces": 20,
+                    "7": 40,
+                    "6": 60,
+                    "5": 80,
+                    "4": 100,
+                    "3": 120,
+                    "2": 140,
+                    "1": 160,
+                    "0 veces": null
+                };
+                if (answer === "0 veces" || answer === null) {
+                    score -= 10;
+                    position.x += driftDirection.x * 150;
+                    position.y += driftDirection.y * 150;
+                    playIncorrectSound();
+                } else {
+                    score += isCorrect ? 10 : -10;
+                    const distance = frequencyDistances[answer];
+                    position.x = 250 + driftDirection.x * distance;
+                    position.y = 187.5 + driftDirection.y * distance;
+                    if (isCorrect) playCorrectSound();
+                    else playIncorrectSound();
+                }
+            } else {
+                if (isCorrect) {
+                    score += 10;
+                    playCorrectSound();
+                } else {
+                    score -= 10;
+                    position.x += driftDirection.x * 150;
+                    position.y += driftDirection.y * 150;
+                    playIncorrectSound();
+                }
+            }
+
+            score = Math.max(-80, Math.min(80, score));
+            position.x = Math.max(0, Math.min(canvas.width, position.x));
+            position.y = Math.max(0, Math.min(canvas.height, position.y));
+            frozenPoints.push({ x: position.x, y: position.y });
+            scoreHistory.push(score);
+            const button = answer ? Array.from(answerButtons.children).find(btn => btn.textContent === answer) : null;
+            if (button) {
+                button.classList.add('blink');
+                setTimeout(() => button.classList.remove('blink'), 300);
+            }
+            currentQuestionIndex++;
+            console.log(`Posición congelada: x=${position.x.toFixed(2)}, y=${position.y.toFixed(2)}`);
+            console.log(`Respuesta guardada: ${answer}`);
+            showQuestion();
+        }
+
+        function isInsideTrapezoid(x = position.x, y = position.y) {
+            const area1Orig = Math.abs((
+                (187.5 * (37.5 - 312.5) + 250 * (312.5 - 62.5) + 62.5 * (62.5 - 37.5)) / 2
+            ));
+            const area1_1 = Math.abs((
+                (x * (37.5 - 312.5) + 250 * (312.5 - y) + 62.5 * (y - 37.5)) / 2
+            ));
+            const area1_2 = Math.abs((
+                (187.5 * (312.5 - y) + x * (62.5 - 312.5) + 62.5 * (y - 62.5)) / 2
+            ));
+            const area1_3 = Math.abs((
+                (187.5 * (y - 37.5) + 250 * (62.5 - y) + x * (312.5 - 62.5)) / 2
+            ));
+            const insideTriangle1 = Math.abs(area1_1 + area1_2 + area1_3 - area1Orig) < 5;
+
+            const area2Orig = Math.abs((
+                (250 * (312.5 - 312.5) + 437.5 * (312.5 - 37.5) + 62.5 * (37.5 - 312.5)) / 2
+            ));
+            const area2_1 = Math.abs((
+                (x * (312.5 - 312.5) + 437.5 * (312.5 - y) + 62.5 * (y - 312.5)) / 2
+            ));
+            const area2_2 = Math.abs((
+                (250 * (312.5 - y) + x * (37.5 - 312.5) + 62.5 * (y - 37.5)) / 2
+            ));
+            const area2_3 = Math.abs((
+                (250 * (y - 312.5) + 437.5 * (312.5 - y) + x * (37.5 - 312.5)) / 2
+            ));
+            const insideTriangle2 = Math.abs(area2_1 + area2_2 + area2_3 - area2Orig) < 5;
+
+            return insideTriangle1 || insideTriangle2;
+        }
+
+        function isNearEdge() {
+            const points = [
+                { x: 187.5, y: 62.5 }, { x: 250, y: 37.5 }, { x: 437.5, y: 312.5 }, { x: 62.5, y: 312.5 }
+            ];
+            for (let i = 0; i < points.length; i++) {
+                const p1 = points[i];
+                const p2 = points[(i + 1) % points.length];
+                const distance = Math.abs(
+                    (p2.y - p1.y) * position.x - (p2.x - p1.x) * position.y + p2.x * p1.y - p2.y * p1.x
+                ) / Math.sqrt((p2.y - p1.y) ** 2 + (p2.x - p1.x) ** 2);
+                if (distance < 20) return true;
+            }
+            return !isInsideTrapezoid();
+        }
+
+        function drawScoreGraph() {
+            scoreCtx.clearRect(0, 0, scoreCanvas.width, scoreCanvas.height);
+            const width = scoreCanvas.width;
+            const height = scoreCanvas.height;
+            const minScore = -80;
+            const maxScore = 80;
+            const scoreRange = maxScore - minScore;
+            const xStep = (width - 80) / (scoreHistory.length - 1);
+            const yScale = (height - 80) / scoreRange;
+
+            scoreCtx.beginPath();
+            scoreCtx.strokeStyle = '#ffffff33';
+            scoreCtx.lineWidth = 1;
+            for (let score = -80; score <= 80; score += 20) {
+                const y = height - 40 - (score - minScore) * yScale;
+                scoreCtx.moveTo(40, y);
+                scoreCtx.lineTo(width - 40, y);
+            }
+            for (let i = 0; i < scoreHistory.length; i++) {
+                const x = 40 + i * xStep;
+                scoreCtx.moveTo(x, 40);
+                scoreCtx.lineTo(x, height - 40);
+            }
+            scoreCtx.stroke();
+
+            scoreCtx.beginPath();
+            scoreCtx.strokeStyle = '#fff';
+            scoreCtx.lineWidth = 2;
+            scoreCtx.moveTo(40, height - 40);
+            scoreCtx.lineTo(width - 40, height - 40);
+            scoreCtx.moveTo(40, 40);
+            scoreCtx.lineTo(40, height - 40);
+            scoreCtx.stroke();
+
+            scoreCtx.font = window.innerWidth <= 600 ? '8px Press Start 2P' : '10px Press Start 2P';
+            scoreCtx.fillStyle = '#fff';
+            scoreCtx.textAlign = 'center';
+            for (let i = 0; i < scoreHistory.length; i++) {
+                scoreCtx.fillText(i, 40 + i * xStep, height - 25);
+            }
+            scoreCtx.textAlign = 'right';
+            scoreCtx.save();
+            scoreCtx.translate(25, height / 2);
+            scoreCtx.rotate(-Math.PI / 2);
+            scoreCtx.fillText('Puntaje', 0, 0);
+            scoreCtx.restore();
+            scoreCtx.textAlign = 'right';
+            scoreCtx.fillText('80', 35, 45);
+            scoreCtx.font = window.innerWidth <= 600 ? '10px Press Start 2P' : '12px Press Start 2P';
+            scoreCtx.fillText('0', 35, height / 2);
+            scoreCtx.font = window.innerWidth <= 600 ? '8px Press Start 2P' : '10px Press Start 2P';
+            scoreCtx.fillText('-80', 35, height - 45);
+            scoreCtx.textAlign = 'center';
+            scoreCtx.fillText('Pregunta', width / 2, height - 15);
+
+            scoreCtx.beginPath();
+            scoreHistory.forEach((score, i) => {
+                const x = 40 + i * xStep;
+                const y = height - 40 - (score - minScore) * yScale;
+                if (i === 0) {
+                    scoreCtx.moveTo(x, y);
+                } else {
+                    scoreCtx.lineTo(x, y);
+                }
+            });
+            scoreCtx.strokeStyle = '#00ff00';
+            scoreCtx.lineWidth = 2;
+            scoreCtx.stroke();
+
+            scoreHistory.forEach((score, i) => {
+                const x = 40 + i * xStep;
+                const y = height - 40 - (score - minScore) * yScale;
+                scoreCtx.beginPath();
+                scoreCtx.arc(x, y, 4, 0, 2 * Math.PI);
+                scoreCtx.fillStyle = '#ff0000';
+                scoreCtx.fill();
+                console.log(`Punto de puntuación dibujado ${i}: x=${x.toFixed(2)}, y=${y.toFixed(2)}`);
+            });
+
+            function showTooltip(event) {
+                const rect = scoreCanvas.getBoundingClientRect();
+                const x = (event.type === 'touchmove' ? event.touches[0].clientX : event.clientX) - rect.left;
+                const y = (event.type === 'touchmove' ? event.touches[0].clientY : event.clientY) - rect.top;
+                if (x < 40 || x > width - 40 || y < 40 || y > height - 40) {
+                    scoreTooltip.style.display = 'none';
+                    return;
+                }
+                const questionIndex = Math.round((x - 40) / xStep);
+                if (questionIndex >= 0 && questionIndex < scoreHistory.length) {
+                    const score = scoreHistory[questionIndex];
+                    scoreTooltip.textContent = `Pregunta ${questionIndex}: ${score}`;
+                    scoreTooltip.style.display = 'block';
+                    scoreTooltip.style.left = `${event.type === 'touchmove' ? event.touches[0].clientX + 15 : event.clientX + 10}px`;
+                    scoreTooltip.style.top = `${event.type === 'touchmove' ? event.touches[0].clientY + 15 : event.clientY + 10}px`;
+                    console.log(`Tooltip (score): Pregunta ${questionIndex}, Puntuación: ${score}`);
+                }
+            }
+
+            scoreCanvas.addEventListener('mousemove', showTooltip);
+            scoreCanvas.addEventListener('touchmove', (event) => {
+                event.preventDefault();
+                setTimeout(() => showTooltip(event), 100);
+            });
+            scoreCanvas.addEventListener('mouseout', () => {
+                scoreTooltip.style.display = 'none';
+            });
+            scoreCanvas.addEventListener('touchend', () => {
+                scoreTooltip.style.display = 'none';
+            });
+        }
+
+        function showEndScreen() {
+            gameContainer.style.display = 'none';
+            endScreen.style.display = 'block';
+            backgroundMusic.pause();
+            console.log('Música pausada');
+            const pointsInside = frozenPoints.filter(point => isInsideTrapezoid(point.x, point.y)).length;
+            console.log(`Puntos dentro del trapezoide: ${pointsInside}/${frozenPoints.length}`);
+            let category;
+            if (score >= 60) category = "Excelente";
+            else if (score >= 30) category = "Bueno";
+            else if (score >= 0) category = "Regular";
+            else category = "Necesita mejora";
+            let message = `¡Juego terminado, ${playerName}! Puntuación final: ${score} (${category})\n`;
+            if (score >= 60 || pointsInside >= 6) {
+                message += `¡Felicidades! Tu disciplina espiritual es fuerte. Continúa alimentándote de la Palabra de Dios (Salmos 119:105: "Lámpara es a mis pies tu palabra"). Sigue participando en talleres de estudio bíblico para crecer aún más.\n`;
+            } else {
+                message += `Hay áreas para fortalecer tu confort espiritual. Santiago 4:8 dice: "Acercaos a Dios, y él se acercará a vosotros". Considera unirte a talleres de oración o grupos de estudio bíblico para profundizar en tu relación con Dios.\n`;
+            }
+            const lowFrequency = ["0 veces", "1", "2", "3"];
+            if (answersGiven[0] && lowFrequency.includes(answersGiven[0])) {
+                message += `Tu frecuencia de lectura bíblica es baja. Proverbios 3:1-2 sugiere: "No olvides mis enseñanzas". Un taller de estudio bíblico puede ayudarte a incorporar la lectura regular.\n`;
+            }
+            if (answersGiven[1] && lowFrequency.includes(answersGiven[1])) {
+                message += `Tu frecuencia de oración es baja. 1 Tesalonicenses 5:17 anima a "orar sin cesar". Un grupo de oración comunitario puede fortalecer esta práctica.\n`;
+            }
+            endMessage.textContent = message;
+
+            function drawEndCanvas() {
+                endCtx.clearRect(0, 0, endCanvas.width, endCanvas.height);
+                drawTrapezoid(endCtx, endCanvas.width, endCanvas.height, false);
+                drawFrozenPoints(endCtx, endCanvas.width, endCanvas.height);
+                drawScoreGraph();
+
+                function showEndTooltip(event) {
+                    event.preventDefault();
+                    setTimeout(() => {
+                        const rect = endCanvas.getBoundingClientRect();
+                        const x = (event.type === 'touchmove' ? event.touches[0].clientX : event.clientX) - rect.left;
+                        const y = (event.type === 'touchmove' ? event.touches[0].clientY : event.clientY) - rect.top;
+                        const scaleX = endCanvas.width / 500;
+                        const scaleY = endCanvas.height / 375;
+                        let closestPoint = null;
+                        let closestDistance = Infinity;
+                        let closestIndex = -1;
+
+                        frozenPoints.forEach((point, index) => {
+                            const px = point.x * scaleX;
+                            const py = point.y * scaleY;
+                            const distance = Math.sqrt((px - x) ** 2 + (py - y) ** 2);
+                            if (distance < closestDistance && distance < 20) {
+                                closestDistance = distance;
+                                closestPoint = point;
+                                closestIndex = index;
+                            }
+                        });
+
+                        if (closestPoint) {
+                            const answer = answersGiven[closestIndex] || 'Sin respuesta';
+                            endTooltip.textContent = `Pregunta: ${questions[closestIndex].question}\nRespuesta: ${answer}`;
+                            endTooltip.style.display = 'block';
+                            endTooltip.style.left = `${event.type === 'touchmove' ? event.touches[0].clientX + 15 : event.clientX + 10}px`;
+                            endTooltip.style.top = `${event.type === 'touchmove' ? event.touches[0].clientY + 15 : event.clientY + 10}px`;
+                            console.log(`Tooltip (end): Pregunta ${closestIndex}, ${questions[closestIndex].question}, Respuesta: ${answer}`);
+                        } else {
+                            endTooltip.style.display = 'none';
+                        }
+                    }, 100);
+                }
+
+                endCanvas.addEventListener('mousemove', showEndTooltip);
+                endCanvas.addEventListener('touchmove', showEndTooltip);
+                endCanvas.addEventListener('mouseout', () => {
+                    endTooltip.style.display = 'none';
+                });
+                endCanvas.addEventListener('touchend', () => {
+                    endTooltip.style.display = 'none';
+                });
+            }
+            drawEndCanvas();
+
+            document.getElementById('share-button').addEventListener('click', () => {
+                html2canvas(document.getElementById('end-screen'), { backgroundColor: '#0a0a0a' }).then(canvas => {
+                    canvas.toBlob(blob => {
+                        const file = new File([blob], 'resultados_triangulo_confort.png', { type: 'image/png' });
+                        if (navigator.share) {
+                            navigator.share({
+                                title: 'Resultados del Triángulo del Confort Espiritual',
+                                text: `¡Mira mis resultados, ${playerName}! Puntuación: ${score} (${category})`,
+                                files: [file]
+                            }).catch(err => {
+                                console.error('Error al compartir:', err);
+                                downloadImage(canvas);
+                            });
+                        } else {
+                            downloadImage(canvas);
+                        }
+                    });
+                });
+            });
+
+            function downloadImage(canvas) {
+                const link = document.createElement('a');
+                link.download = 'resultados_triangulo_confort.png';
+                link.href = canvas.toDataURL();
+                link.click();
+            }
+        }
+
+        document.getElementById('start-button').addEventListener('click', () => {
+            playerName = nameInput.value.trim();
+            if (playerName) {
+                console.log('Juego iniciado');
+                unlockAudioContext();
+                requestMotionPermission();
+                startScreen.style.display = 'none';
+                gameContainer.style.display = 'block';
+                shootingStarsCanvas.style.display = 'none';
+                setRandomDriftDirection();
+                showQuestion();
+                function animate() {
+                    if (currentQuestionIndex < questions.length) {
+                        updateCanvas();
+                        requestAnimationFrame(animate);
+                    }
+                }
+                animate();
+            } else {
+                alert('Por favor, ingresa tu nombre o nickname.');
+            }
+        });
+
+        document.getElementById('restart-button').addEventListener('click', () => {
+            console.log('Juego reiniciado');
+            currentQuestionIndex = 0;
+            score = 0;
+            position = { x: 250, y: 187.5 };
+            frozenPoints = [];
+            scoreHistory = [0];
+            answersGiven = [];
+            endScreen.style.display = 'none';
+            startScreen.style.display = 'block';
+            shootingStarsCanvas.style.display = 'block';
+            if (!shootingStars.length) {
+                for (let i = 0; i < 3; i++) {
+                    shootingStars.push(new ShootingStar());
+                }
+            }
+            animateShootingStars();
+            nameInput.value = '';
+            feedbackElement.textContent = `Puntuación: ${score}`;
+            feedbackElement.className = 'positive';
+            updateCanvas();
+            audioContextUnlocked = false;
+            unlockAudioContext();
+        });
+
+        window.onerror = (msg, url, line) => {
+            console.error(`Error JS: ${msg} en línea ${line}`);
+        };
+
+        feedbackElement.textContent = `Puntuación: ${score}`;
+        feedbackElement.className = 'positive';
+        updateCanvas();
+
+        // Shooting stars animation
+        const shootingStarsCanvas = document.getElementById('shooting-stars');
+        const shootingStarsCtx = shootingStarsCanvas.getContext('2d');
+
+        function resizeShootingStarsCanvas() {
+            shootingStarsCanvas.width = window.innerWidth;
+            shootingStarsCanvas.height = window.innerHeight;
+        }
+
+        resizeShootingStarsCanvas();
+        window.addEventListener('resize', resizeShootingStarsCanvas);
+
+        const shootingStars = [];
+        const trailPoints = [];
+
+        class ShootingStar {
+            constructor() {
+                this.x = Math.random() * shootingStarsCanvas.width;
+                this.y = Math.random() * shootingStarsCanvas.height;
+                this.vx = (Math.random() - 0.5) * 4;
+                this.vy = (Math.random() - 0.5) * 4;
+                this.size = Math.random() * 3 + 2;
+                this.trail = [];
+                this.maxTrailLength = 20;
+            }
+
+            update() {
+                this.trail.push({ x: this.x, y: this.y, alpha: 1 });
+                if (this.trail.length > this.maxTrailLength) {
+                    this.trail.shift();
+                }
+                this.x += this.vx;
+                this.y += this.vy;
+                if (this.x <= 0 || this.x >= shootingStarsCanvas.width) {
+                    this.vx = -this.vx;
+                    this.x = Math.max(0, Math.min(shootingStarsCanvas.width, this.x));
+                }
+                if (this.y <= 0 || this.y >= shootingStarsCanvas.height) {
+                    this.vy = -this.vy;
+                    this.y = Math.max(0, Math.min(shootingStarsCanvas.height, this.y));
+                }
+                this.trail.forEach((point, index) => {
+                    point.alpha = (index + 1) / this.trail.length * 0.8;
+                });
+            }
+
+            draw() {
+                this.trail.forEach((point, index) => {
+                    if (index > 0) {
+                        const prevPoint = this.trail[index - 1];
+                        shootingStarsCtx.beginPath();
+                        shootingStarsCtx.moveTo(prevPoint.x, prevPoint.y);
+                        shootingStarsCtx.lineTo(point.x, point.y);
+                        shootingStarsCtx.strokeStyle = `rgba(255, 255, 255, ${point.alpha})`;
+                        shootingStarsCtx.lineWidth = this.size * (point.alpha * 0.5);
+                        shootingStarsCtx.stroke();
+                    }
+                });
+                shootingStarsCtx.beginPath();
+                shootingStarsCtx.arc(this.x, this.y, this.size, 0, 2 * Math.PI);
+                shootingStarsCtx.fillStyle = '#ffffff';
+                shootingStarsCtx.shadowBlur = 10;
+                shootingStarsCtx.shadowColor = '#ffffff';
+                shootingStarsCtx.fill();
+                shootingStarsCtx.shadowBlur = 0;
+            }
+        }
+
+        for (let i = 0; i < 3; i++) {
+            shootingStars.push(new ShootingStar());
+        }
+
+        function animateShootingStars() {
+            shootingStarsCtx.clearRect(0, 0, shootingStarsCanvas.width, shootingStarsCanvas.height);
+            shootingStars.forEach(star => {
+                star.update();
+                star.draw();
+            });
+            requestAnimationFrame(animateShootingStars);
+        }
+
+        if (startScreen.style.display !== 'none') {
+            animateShootingStars();
+        }
+    </script>
+</body>
+</html>
